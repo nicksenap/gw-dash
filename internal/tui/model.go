@@ -238,19 +238,16 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
-	var sections []string
-
-	// Header
-	header := renderHeader(m.summary, m.width)
-	sections = append(sections, header)
-
-	// Layout dimensions
-	headerHeight := lipgloss.Height(header)
-	statusBarHeight := 1
-	boardHeight := m.height - headerHeight - statusBarHeight
+	// Fixed layout: 1 line header, 1 line status bar, rest is board
+	const headerLines = 1
+	const statusLines = 1
+	boardHeight := m.height - headerLines - statusLines
 	if boardHeight < 3 {
 		boardHeight = 3
 	}
+
+	// Header — single line, no wrapping
+	header := renderHeader(m.summary, m.width)
 
 	// Main split: board (2/3) + detail (1/3)
 	boardWidth := m.width * 2 / 3
@@ -275,10 +272,15 @@ func (m Model) View() string {
 
 	// Join board + detail
 	mainArea := lipgloss.JoinHorizontal(lipgloss.Top, board, detail)
-	sections = append(sections, mainArea)
 
 	// Status bar
-	sections = append(sections, renderStatusBar(m.searching, m.searchQuery, m.width))
+	statusBar := renderStatusBar(m.searching, m.searchQuery, m.width)
 
-	return strings.Join(sections, "\n")
+	// Combine and truncate to exact terminal height to prevent scrolling
+	output := header + "\n" + mainArea + "\n" + statusBar
+	outputLines := strings.Split(output, "\n")
+	if len(outputLines) > m.height {
+		outputLines = outputLines[:m.height]
+	}
+	return strings.Join(outputLines, "\n")
 }

@@ -25,7 +25,7 @@ func idleAgo(seconds float64) string {
 // renderHeader renders the top header bar with summary and usage.
 func renderHeader(summary grove.StatusSummary, width int) string {
 	var parts []string
-	parts = append(parts, lipgloss.NewStyle().Bold(true).Foreground(fg).Render("⚎ gw dash"))
+	parts = append(parts, lipgloss.NewStyle().Bold(true).Foreground(fg).Render("\u26a1\ufe0e gw dash"))
 	parts = append(parts, "  ")
 
 	if summary.Total == 0 {
@@ -77,7 +77,8 @@ func renderHeader(summary grove.StatusSummary, width int) string {
 	}
 
 	line := strings.Join(parts, "")
-	return headerStyle.Width(width).Render(line)
+	// MaxWidth prevents wrapping — truncates instead of creating a second line
+	return headerStyle.MaxWidth(width).Render(line)
 }
 
 // renderCard renders a single agent task card.
