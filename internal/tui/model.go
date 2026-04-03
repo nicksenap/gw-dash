@@ -163,22 +163,34 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		if agent := m.focusedAgent(); agent != nil {
-			grove.ZellijJumpToAgent(agent.ProjectName, agent.CWD)
+			project, cwd := agent.ProjectName, agent.CWD
+			return m, func() tea.Msg {
+				grove.ZellijJumpToAgent(project, cwd)
+				return nil
+			}
 		}
 
 	case "y":
 		if agent := m.focusedAgent(); agent != nil && agent.Status == grove.StatusWaitingPerm {
-			if grove.ZellijJumpToAgent(agent.ProjectName, agent.CWD) {
-				grove.ZellijApprove()
-				grove.ZellijJumpToAgent("grove", "")
+			project, cwd := agent.ProjectName, agent.CWD
+			return m, func() tea.Msg {
+				if grove.ZellijJumpToAgent(project, cwd) {
+					grove.ZellijApprove()
+					grove.ZellijJumpToAgent("grove", "")
+				}
+				return nil
 			}
 		}
 
 	case "n":
 		if agent := m.focusedAgent(); agent != nil && agent.Status == grove.StatusWaitingPerm {
-			if grove.ZellijJumpToAgent(agent.ProjectName, agent.CWD) {
-				grove.ZellijDeny()
-				grove.ZellijJumpToAgent("grove", "")
+			project, cwd := agent.ProjectName, agent.CWD
+			return m, func() tea.Msg {
+				if grove.ZellijJumpToAgent(project, cwd) {
+					grove.ZellijDeny()
+					grove.ZellijJumpToAgent("grove", "")
+				}
+				return nil
 			}
 		}
 
@@ -196,6 +208,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) moveColumn(dir int) {
 	cols := grove.KanbanColumns
 	numCols := len(cols)
+	startCol := m.cursorCol
 	m.cursorCol = (m.cursorCol + dir + numCols) % numCols
 	m.cursorCard = 0
 
@@ -207,6 +220,8 @@ func (m *Model) moveColumn(dir int) {
 		}
 		m.cursorCol = (m.cursorCol + dir + numCols) % numCols
 	}
+	// All columns empty — stay where we were
+	m.cursorCol = startCol
 }
 
 func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

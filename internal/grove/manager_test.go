@@ -297,7 +297,8 @@ func TestResolveWorkspace(t *testing.T) {
 		SessionID: "s1",
 		CWD:       filepath.Join(wsPath, "repo-a"),
 	}
-	resolveWorkspace(agent, groveDir)
+	state, _ := LoadState(groveDir)
+	resolveWorkspaceWithState(agent, state)
 
 	if agent.WorkspaceName != "feat-test" {
 		t.Errorf("WorkspaceName = %q, want %q", agent.WorkspaceName, "feat-test")
@@ -329,7 +330,8 @@ func TestResolveWorkspace_NoMatch(t *testing.T) {
 		CWD:         "/totally/different/path",
 		DisplayName: "original",
 	}
-	resolveWorkspace(agent, groveDir)
+	state, _ := LoadState(groveDir)
+	resolveWorkspaceWithState(agent, state)
 
 	if agent.WorkspaceName != "" {
 		t.Errorf("WorkspaceName = %q, want empty", agent.WorkspaceName)
@@ -340,9 +342,8 @@ func TestResolveWorkspace_NoMatch(t *testing.T) {
 }
 
 func TestResolveWorkspace_EmptyCWD(t *testing.T) {
-	groveDir := t.TempDir()
 	agent := &AgentState{SessionID: "s1", CWD: ""}
-	resolveWorkspace(agent, groveDir)
+	resolveWorkspaceWithState(agent, nil)
 	if agent.WorkspaceName != "" {
 		t.Errorf("WorkspaceName = %q, want empty for empty CWD", agent.WorkspaceName)
 	}

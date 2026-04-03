@@ -52,5 +52,20 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(panel).
 			Padding(0, 1)
+)
 
+// Shared text styles — reused across render functions to reduce allocations.
+var (
+	boldFG    = lipgloss.NewStyle().Bold(true).Foreground(fg)
+	dimGrey   = lipgloss.NewStyle().Foreground(grey)
+	boldRed   = lipgloss.NewStyle().Bold(true).Foreground(red)
+	boldYellow = lipgloss.NewStyle().Bold(true).Foreground(yellow)
+	fgGreen   = lipgloss.NewStyle().Foreground(green)
+	fgAqua    = lipgloss.NewStyle().Foreground(aqua)
+	fgOrange  = lipgloss.NewStyle().Foreground(orange)
+	fgPurple  = lipgloss.NewStyle().Foreground(purple)
+	fgYellow  = lipgloss.NewStyle().Foreground(yellow)
+	fgRed     = lipgloss.NewStyle().Foreground(red)
+	padded    = lipgloss.NewStyle().Padding(0, 1)
+	colTitle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#85A598")).Padding(0, 1)
 )

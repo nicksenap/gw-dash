@@ -8,6 +8,15 @@ import (
 	"github.com/nicksenap/gw-dash/internal/grove"
 )
 
+// truncate safely truncates a string to n runes (not bytes).
+func truncate(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n])
+}
+
 // idleAgo formats idle seconds as a human-readable age string.
 func idleAgo(seconds float64) string {
 	if seconds < 5 {
@@ -25,32 +34,32 @@ func idleAgo(seconds float64) string {
 // renderHeader renders the top header bar with summary and usage.
 func renderHeader(summary grove.StatusSummary, width int) string {
 	var parts []string
-	parts = append(parts, lipgloss.NewStyle().Bold(true).Foreground(fg).Render("\u26a1\ufe0e gw dash"))
+	parts = append(parts, boldFG.Render("\u26a1\ufe0e gw dash"))
 	parts = append(parts, "  ")
 
 	if summary.Total == 0 {
-		parts = append(parts, lipgloss.NewStyle().Foreground(grey).Render("No agents"))
+		parts = append(parts, dimGrey.Render("No agents"))
 	} else {
-		parts = append(parts, lipgloss.NewStyle().Foreground(grey).Render(fmt.Sprintf("agents: %d", summary.Total)))
+		parts = append(parts, dimGrey.Render(fmt.Sprintf("agents: %d", summary.Total)))
 		parts = append(parts, "  ")
 		if summary.Working > 0 {
-			parts = append(parts, lipgloss.NewStyle().Foreground(green).Render(fmt.Sprintf(">>>%d", summary.Working)))
+			parts = append(parts, fgGreen.Render(fmt.Sprintf(">>>%d", summary.Working)))
 			parts = append(parts, "  ")
 		}
 		if summary.WaitingPerm > 0 {
-			parts = append(parts, lipgloss.NewStyle().Bold(true).Foreground(red).Render(fmt.Sprintf("[!]%d", summary.WaitingPerm)))
+			parts = append(parts, boldRed.Render(fmt.Sprintf("[!]%d", summary.WaitingPerm)))
 			parts = append(parts, "  ")
 		}
 		if summary.WaitingAnswer > 0 {
-			parts = append(parts, lipgloss.NewStyle().Bold(true).Foreground(yellow).Render(fmt.Sprintf("[?]%d", summary.WaitingAnswer)))
+			parts = append(parts, boldYellow.Render(fmt.Sprintf("[?]%d", summary.WaitingAnswer)))
 			parts = append(parts, "  ")
 		}
 		if summary.Error > 0 {
-			parts = append(parts, lipgloss.NewStyle().Foreground(orange).Render(fmt.Sprintf("[X]%d", summary.Error)))
+			parts = append(parts, fgOrange.Render(fmt.Sprintf("[X]%d", summary.Error)))
 			parts = append(parts, "  ")
 		}
 		if summary.Idle > 0 {
-			parts = append(parts, lipgloss.NewStyle().Foreground(grey).Render(fmt.Sprintf("---%d", summary.Idle)))
+			parts = append(parts, dimGrey.Render(fmt.Sprintf("---%d", summary.Idle)))
 		}
 	}
 
@@ -60,16 +69,16 @@ func renderHeader(summary grove.StatusSummary, width int) string {
 		uColor := lipgloss.Color(grove.UsageColor(usage.Utilization))
 		staleStr := ""
 		if usage.Stale {
-			staleStr = lipgloss.NewStyle().Foreground(grey).Render(" stale")
+			staleStr = dimGrey.Render(" stale")
 		}
 		resetStr := ""
 		if cd := usage.ResetCountdown(); cd != "" {
 			resetStr = " → " + cd
 		}
 		parts = append(parts, "  ")
-		parts = append(parts, lipgloss.NewStyle().Foreground(grey).Render("│"))
+		parts = append(parts, dimGrey.Render("│"))
 		parts = append(parts, "  ")
-		parts = append(parts, lipgloss.NewStyle().Foreground(grey).Render("usage: "))
+		parts = append(parts, dimGrey.Render("usage: "))
 		parts = append(parts, lipgloss.NewStyle().Foreground(uColor).Render(
 			fmt.Sprintf("%d%% %s%s", usage.Utilization, usage.Bar(), resetStr),
 		))
@@ -93,25 +102,25 @@ func renderCard(agent *grove.AgentState, focused bool, width int) string {
 
 	// Line 1: Name + status badge
 	name := agent.DisplayName
-	if name == "" && len(agent.SessionID) > 12 {
-		name = agent.SessionID[:12]
+	if name == "" && len([]rune(agent.SessionID)) > 12 {
+		name = truncate(agent.SessionID, 12)
 	} else if name == "" {
 		name = agent.SessionID
 	}
-	line1 := lipgloss.NewStyle().Bold(true).Foreground(fg).Render(name) +
+	line1 := boldFG.Render(name) +
 		"  " + lipgloss.NewStyle().Foreground(sColor).Render(sd.Label)
 	lines = append(lines, line1)
 
 	// Line 2: Branch + tool info
 	var line2Parts []string
 	if agent.GitBranch != "" {
-		line2Parts = append(line2Parts, lipgloss.NewStyle().Foreground(aqua).Render(agent.GitBranch))
+		line2Parts = append(line2Parts, fgAqua.Render(agent.GitBranch))
 	}
 	if agent.LastTool != "" {
 		ago := idleAgo(agent.IdleSeconds())
 		toolStr := agent.LastTool
 		if ago != "" {
-			toolStr += " " + lipgloss.NewStyle().Foreground(grey).Render(ago)
+			toolStr += " " + dimGrey.Render(ago)
 		}
 		line2Parts = append(line2Parts, toolStr)
 	}
@@ -122,19 +131,19 @@ func renderCard(agent *grove.AgentState, focused bool, width int) string {
 	// Line 3: Counts + sparkline
 	var meta []string
 	if agent.ToolCount > 0 {
-		meta = append(meta, lipgloss.NewStyle().Foreground(grey).Render(fmt.Sprintf("%d tools", agent.ToolCount)))
+		meta = append(meta, dimGrey.Render(fmt.Sprintf("%d tools", agent.ToolCount)))
 	}
 	if agent.ErrorCount > 0 {
-		meta = append(meta, lipgloss.NewStyle().Foreground(orange).Render(fmt.Sprintf("%d err", agent.ErrorCount)))
+		meta = append(meta, fgOrange.Render(fmt.Sprintf("%d err", agent.ErrorCount)))
 	}
 	if agent.SubagentCount > 0 {
-		meta = append(meta, lipgloss.NewStyle().Foreground(aqua).Render(fmt.Sprintf("+%d sub", agent.SubagentCount)))
+		meta = append(meta, fgAqua.Render(fmt.Sprintf("+%d sub", agent.SubagentCount)))
 	}
 	if uptime := agent.Uptime(); uptime != "" {
-		meta = append(meta, lipgloss.NewStyle().Foreground(grey).Render(uptime))
+		meta = append(meta, dimGrey.Render(uptime))
 	}
 	if spark := agent.Sparkline(); spark != "" {
-		meta = append(meta, lipgloss.NewStyle().Foreground(green).Render(spark))
+		meta = append(meta, fgGreen.Render(spark))
 	}
 	if len(meta) > 0 {
 		lines = append(lines, strings.Join(meta, "  "))
@@ -143,37 +152,29 @@ func renderCard(agent *grove.AgentState, focused bool, width int) string {
 	// Line 4: Prompt snippet
 	if agent.InitialPrompt != "" {
 		prompt := strings.ReplaceAll(agent.InitialPrompt, "\n", " ")
-		if len(prompt) > 60 {
-			prompt = prompt[:60]
-		}
-		lines = append(lines, lipgloss.NewStyle().Foreground(grey).Render(prompt))
+		prompt = truncate(prompt, 60)
+		lines = append(lines, dimGrey.Render(prompt))
 	}
 
 	// Special states
 	if agent.Status == grove.StatusWaitingPerm && agent.ToolRequestSummary != nil {
 		summary := strings.SplitN(*agent.ToolRequestSummary, "\n", 2)[0]
-		if len(summary) > 60 {
-			summary = summary[:60]
-		}
+		summary = truncate(summary, 60)
 		lines = append(lines,
-			lipgloss.NewStyle().Foreground(red).Render("PERM: "+agent.LastTool)+" "+
-				lipgloss.NewStyle().Foreground(grey).Render(summary))
+			fgRed.Render("PERM: "+agent.LastTool)+" "+
+				dimGrey.Render(summary))
 	}
 
 	if agent.Status == grove.StatusError && agent.LastError != "" {
 		errMsg := strings.ReplaceAll(agent.LastError, "\n", " ")
-		if len(errMsg) > 60 {
-			errMsg = errMsg[:60]
-		}
-		lines = append(lines, lipgloss.NewStyle().Foreground(orange).Render(errMsg))
+		errMsg = truncate(errMsg, 60)
+		lines = append(lines, fgOrange.Render(errMsg))
 	}
 
 	if agent.NotificationMessage != nil && *agent.NotificationMessage != "" {
 		msg := *agent.NotificationMessage
-		if len(msg) > 60 {
-			msg = msg[:60]
-		}
-		lines = append(lines, lipgloss.NewStyle().Foreground(purple).Render(msg))
+		msg = truncate(msg, 60)
+		lines = append(lines, fgPurple.Render(msg))
 	}
 
 	content := strings.Join(lines, "\n")
@@ -194,11 +195,7 @@ func renderColumn(col grove.KanbanColumn, agents []*grove.AgentState, focusedIdx
 	if len(agents) > 0 {
 		title = fmt.Sprintf("%s (%d)", col.Title, len(agents))
 	}
-	titleLine := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#85A598")).
-		Padding(0, 1).
-		Render(title)
+	titleLine := colTitle.Render(title)
 
 	var cardViews []string
 	for i, agent := range agents {
@@ -224,11 +221,7 @@ func renderColumn(col grove.KanbanColumn, agents []*grove.AgentState, focusedIdx
 // renderDetail renders the detail panel for the selected agent.
 func renderDetail(agent *grove.AgentState, width, height int) string {
 	// Title line
-	detailTitle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#85A598")).
-		Padding(0, 1).
-		Render("Detail")
+	detailTitle := colTitle.Render("Detail")
 
 	if agent == nil {
 		content := detailTitle + "\n\n" +
@@ -251,21 +244,21 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 		"  "+lipgloss.NewStyle().Foreground(sColor).Render(sd.Label))
 	lines = append(lines, "")
 
-	pad := lipgloss.NewStyle().Padding(0, 1)
+	pad := padded
 
 	// Workspace or CWD
 	if agent.WorkspaceName != "" {
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("workspace: ")+
-				lipgloss.NewStyle().Foreground(aqua).Render(agent.WorkspaceName)))
+			dimGrey.Render("workspace: ")+
+				fgAqua.Render(agent.WorkspaceName)))
 		if len(agent.WorkspaceRepos) > 0 {
 			lines = append(lines, pad.Render(
-				lipgloss.NewStyle().Foreground(grey).Render("repos:     ")+
+				dimGrey.Render("repos:     ")+
 					strings.Join(agent.WorkspaceRepos, ", ")))
 		}
 	} else if agent.CWD != "" {
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("cwd:    ")+agent.CWD))
+			dimGrey.Render("cwd:    ")+agent.CWD))
 	}
 
 	if agent.GitBranch != "" {
@@ -274,33 +267,33 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 			dirty = fmt.Sprintf(" (%d dirty)", agent.GitDirtyCount)
 		}
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("branch: ")+
-				lipgloss.NewStyle().Foreground(aqua).Render(agent.GitBranch)+dirty))
+			dimGrey.Render("branch: ")+
+				fgAqua.Render(agent.GitBranch)+dirty))
 	}
 
 	if agent.Model != "" {
 		modelStr := agent.Model
 		if agent.PermissionMode != "" && agent.PermissionMode != "default" {
-			modelStr += "  " + lipgloss.NewStyle().Foreground(yellow).Render(agent.PermissionMode)
+			modelStr += "  " + fgYellow.Render(agent.PermissionMode)
 		}
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("model:  ")+modelStr))
+			dimGrey.Render("model:  ")+modelStr))
 	}
 
 	if uptime := agent.Uptime(); uptime != "" {
 		sourceTag := ""
 		if agent.SessionSource != "" && agent.SessionSource != "startup" {
-			sourceTag = " " + lipgloss.NewStyle().Foreground(aqua).Render("("+agent.SessionSource+")")
+			sourceTag = " " + fgAqua.Render("("+agent.SessionSource+")")
 		}
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("uptime: ")+uptime+sourceTag))
+			dimGrey.Render("uptime: ")+uptime+sourceTag))
 	}
 
 	lines = append(lines, "")
 	lines = append(lines, pad.Render(
-		lipgloss.NewStyle().Foreground(grey).Render("tools:  ")+fmt.Sprintf("%d", agent.ToolCount)+
-			lipgloss.NewStyle().Foreground(grey).Render("    errors: ")+fmt.Sprintf("%d", agent.ErrorCount)+
-			lipgloss.NewStyle().Foreground(grey).Render("    subs: ")+fmt.Sprintf("%d", agent.SubagentCount)))
+		dimGrey.Render("tools:  ")+fmt.Sprintf("%d", agent.ToolCount)+
+			dimGrey.Render("    errors: ")+fmt.Sprintf("%d", agent.ErrorCount)+
+			dimGrey.Render("    subs: ")+fmt.Sprintf("%d", agent.SubagentCount)))
 
 	if agent.LastTool != "" {
 		idle := agent.IdleSeconds()
@@ -313,13 +306,13 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 			ago = fmt.Sprintf("%dh ago", int(idle)/3600)
 		}
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("last:   ")+agent.LastTool+" ("+ago+")"))
+			dimGrey.Render("last:   ")+agent.LastTool+" ("+ago+")"))
 	}
 
 	if spark := agent.Sparkline(); spark != "" {
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("activity: ")+
-				lipgloss.NewStyle().Foreground(green).Render(spark)))
+			dimGrey.Render("activity: ")+
+				fgGreen.Render(spark)))
 	}
 
 	if agent.CompactCount > 0 {
@@ -327,53 +320,47 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 		if agent.CompactTrigger != "" {
 			trigger = " (" + agent.CompactTrigger + ")"
 		}
-		lines = append(lines, pad.Render(lipgloss.NewStyle().Foreground(yellow).Render(
+		lines = append(lines, pad.Render(fgYellow.Render(
 			fmt.Sprintf("compacted: %dx%s", agent.CompactCount, trigger))))
 	}
 
 	if len(agent.ActiveSubagents) > 0 {
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("agents:  ")+
-				lipgloss.NewStyle().Foreground(aqua).Render(strings.Join(agent.ActiveSubagents, ", "))))
+			dimGrey.Render("agents:  ")+
+				fgAqua.Render(strings.Join(agent.ActiveSubagents, ", "))))
 	}
 
 	// Initial prompt
 	if agent.InitialPrompt != "" {
 		lines = append(lines, "")
 		prompt := strings.ReplaceAll(agent.InitialPrompt, "\n", " ")
-		if len(prompt) > 120 {
-			prompt = prompt[:120]
-		}
+		prompt = truncate(prompt, 120)
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("prompt: ")+prompt))
+			dimGrey.Render("prompt: ")+prompt))
 	}
 
 	// Last message
 	if agent.LastMessage != "" && agent.Status == grove.StatusIdle {
 		lines = append(lines, "")
 		msg := strings.ReplaceAll(agent.LastMessage, "\n", " ")
-		if len(msg) > 200 {
-			msg = msg[:200]
-		}
+		msg = truncate(msg, 200)
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(grey).Render("last reply: ")+msg))
+			dimGrey.Render("last reply: ")+msg))
 	}
 
 	// Last error
 	if agent.LastError != "" && agent.Status == grove.StatusError {
 		lines = append(lines, "")
 		errStr := agent.LastError
-		if len(errStr) > 200 {
-			errStr = errStr[:200]
-		}
+		errStr = truncate(errStr, 200)
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(red).Render("error: ")+errStr))
+			fgRed.Render("error: ")+errStr))
 	}
 
 	// Permission request detail
 	if agent.Status == grove.StatusWaitingPerm && agent.ToolRequestSummary != nil {
 		lines = append(lines, "")
-		lines = append(lines, pad.Render(lipgloss.NewStyle().Bold(true).Foreground(red).Render("Permission Request")))
+		lines = append(lines, pad.Render(boldRed.Render("Permission Request")))
 		lines = append(lines, pad.Render(lipgloss.NewStyle().Bold(true).Render("Tool: ")+agent.LastTool))
 		lines = append(lines, "")
 		summaryLines := strings.Split(*agent.ToolRequestSummary, "\n")
@@ -382,11 +369,11 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 				break
 			}
 			if strings.HasPrefix(line, "+ ") {
-				lines = append(lines, pad.Render(lipgloss.NewStyle().Foreground(green).Render(line)))
+				lines = append(lines, pad.Render(fgGreen.Render(line)))
 			} else if strings.HasPrefix(line, "- ") {
-				lines = append(lines, pad.Render(lipgloss.NewStyle().Foreground(red).Render(line)))
+				lines = append(lines, pad.Render(fgRed.Render(line)))
 			} else if strings.HasPrefix(line, "$ ") {
-				lines = append(lines, pad.Render(lipgloss.NewStyle().Foreground(yellow).Render(line)))
+				lines = append(lines, pad.Render(fgYellow.Render(line)))
 			} else {
 				lines = append(lines, pad.Render(line))
 			}
@@ -397,7 +384,7 @@ func renderDetail(agent *grove.AgentState, width, height int) string {
 	if agent.NotificationMessage != nil && *agent.NotificationMessage != "" {
 		lines = append(lines, "")
 		lines = append(lines, pad.Render(
-			lipgloss.NewStyle().Foreground(purple).Render("Notification: ")+*agent.NotificationMessage))
+			fgPurple.Render("Notification: ")+*agent.NotificationMessage))
 	}
 
 	content := strings.Join(lines, "\n")
@@ -410,12 +397,12 @@ func renderStatusBar(searching bool, searchQuery string, width int) string {
 		return statusBarStyle.Width(width).Render("/" + searchQuery + "█")
 	}
 	return statusBarStyle.Width(width).Render(
-		lipgloss.NewStyle().Foreground(grey).Render("q") + " quit  " +
-			lipgloss.NewStyle().Foreground(grey).Render("h/l") + " columns  " +
-			lipgloss.NewStyle().Foreground(grey).Render("j/k") + " cards  " +
-			lipgloss.NewStyle().Foreground(grey).Render("enter") + " jump  " +
-			lipgloss.NewStyle().Foreground(grey).Render("y/n") + " approve/deny  " +
-			lipgloss.NewStyle().Foreground(grey).Render("r") + " refresh  " +
-			lipgloss.NewStyle().Foreground(grey).Render("/") + " search",
+		dimGrey.Render("q") + " quit  " +
+			dimGrey.Render("h/l") + " columns  " +
+			dimGrey.Render("j/k") + " cards  " +
+			dimGrey.Render("enter") + " jump  " +
+			dimGrey.Render("y/n") + " approve/deny  " +
+			dimGrey.Render("r") + " refresh  " +
+			dimGrey.Render("/") + " search",
 	)
 }

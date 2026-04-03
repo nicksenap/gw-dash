@@ -15,6 +15,9 @@ func Scan(groveDir string) ([]*AgentState, StatusSummary) {
 		return nil, StatusSummary{}
 	}
 
+	// Load workspace state once for all agents (not per-agent)
+	wsState, _ := LoadState(groveDir)
+
 	var agents []*AgentState
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -33,7 +36,7 @@ func Scan(groveDir string) ([]*AgentState, StatusSummary) {
 		} else {
 			agent.DisplayName = agent.SessionID
 		}
-		resolveWorkspace(agent, groveDir)
+		resolveWorkspaceWithState(agent, wsState)
 		agents = append(agents, agent)
 	}
 
@@ -49,13 +52,9 @@ func Scan(groveDir string) ([]*AgentState, StatusSummary) {
 	return agents, NewStatusSummary(agents)
 }
 
-// resolveWorkspace enriches an agent with Grove workspace info if CWD is inside a workspace.
-func resolveWorkspace(agent *AgentState, groveDir string) {
-	if agent.CWD == "" {
-		return
-	}
-	state, err := LoadState(groveDir)
-	if err != nil {
+// resolveWorkspaceWithState enriches an agent with Grove workspace info using a pre-loaded state.
+func resolveWorkspaceWithState(agent *AgentState, state *State) {
+	if agent.CWD == "" || state == nil {
 		return
 	}
 
