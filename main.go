@@ -19,13 +19,7 @@ func main() {
 
 	groveDir := grove.Dir()
 
-	state, err := grove.LoadState(groveDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		os.Exit(1)
-	}
-
-	m := tui.NewModel(state, groveDir)
+	m := tui.NewModel(groveDir)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
