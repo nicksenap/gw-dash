@@ -34,7 +34,7 @@ Features:
 
 ## Install
 
-Requires [Grove](https://github.com/nicksenap/grove) (Go version) with the plugin system.
+Requires [Grove](https://github.com/nicksenap/grove) with the plugin system.
 
 ```bash
 gw plugin install nicksenap/gw-dash
