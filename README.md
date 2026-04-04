@@ -2,6 +2,8 @@
 
 Kanban-style TUI dashboard for monitoring Claude Code agents across [Grove](https://github.com/nicksenap/grove) workspaces.
 
+Requires [gw-claude](https://github.com/nicksenap/gw-claude) for session tracking data.
+
 Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) + [Lipgloss](https://github.com/charmbracelet/lipgloss). Gruvbox dark theme.
 
 ## What it does
