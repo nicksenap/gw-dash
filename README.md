@@ -72,24 +72,26 @@ gw dash --version
 ## How it works
 
 ```
-Claude Code hooks ──write──▸ ~/.grove/status/*.json ◂──read── gw-dash
-                              (one file per session)
+Claude Code events ──▸ gw-claude hook handle ──write──▸ ~/.grove/status/*.json ◂──read── gw-dash
+                                                          (one file per session)
 ```
 
-Grove's hook handler (`gw _hook`) runs on every Claude Code event (tool use, permission request, notification, etc.) and writes a JSON state file per agent session. `gw-dash` polls these files and renders the kanban board.
+The [gw-claude](https://github.com/nicksenap/gw-claude) plugin's hook handler runs on every Claude Code event (tool use, permission request, notification, etc.) and writes a JSON state file per agent session. `gw-dash` polls these files and renders the kanban board.
 
 The dashboard also reads:
 - `~/.grove/state.json` — to resolve workspace names and repos
-- `~/.claude/.statusline-usage-cache` — for the API usage meter
+- `~/.claude/.statusline-usage-cache` — for the API usage meter (requires [Claude Usage Tracker](https://github.com/hamed-elfayome/Claude-Usage-Tracker))
 
-### Setup hooks
+### Prerequisites
 
-If not already installed:
+Install the [gw-claude](https://github.com/nicksenap/gw-claude) plugin and register its hooks:
 
 ```bash
-gw dash install    # installs Claude Code hooks
-gw dash uninstall  # removes them
+gw plugin install nicksenap/gw-claude
+gw claude hook install
 ```
+
+This registers session tracking hooks in `~/.claude/settings.json`. Without this, the dashboard has no data to display.
 
 ## Development
 
